@@ -273,7 +273,26 @@ class AdaBoostTreeClassifier:
 
 
 if __name__ == '__main__':
-    stump = DecisionStumpClassifier()
+    import pandas as pd
 
-    y1 = np.array([2, 0, 1, 1, 2, 2, 0, 2])
-    stump.calc_gini_score_node(y1)
+    # TODO.x have to figure things out here!
+    np.random.seed(0)
+    df_iris = pd.read_csv('data/a3-iris.csv')
+    # Convert the 3 string class labels to 0, 1, and 2
+    df_iris.species = df_iris.species.factorize()[0]
+    df_iris = df_iris.sample(frac=1).reset_index(drop=True)
+
+    X = df_iris[['sepal_length', 'sepal_width', 'petal_length', 'petal_width']].to_numpy()
+    y = df_iris['species'].to_numpy().squeeze()
+
+    training_size = int(0.8 * X.shape[0])
+
+    X_train, y_train = X[:training_size], y[:training_size]
+    X_test, y_test = X[training_size:], y[training_size:]
+
+    print(X_train.shape, X_test.shape)
+
+    stump = DecisionStumpClassifier().fit(X_train, y_train)
+
+    print("Index of best feature:", stump.feature_idx)
+    print("Best threshold:", stump.threshold)

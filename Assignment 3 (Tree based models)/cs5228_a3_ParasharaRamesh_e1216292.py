@@ -81,6 +81,14 @@ class DecisionStumpClassifier:
         ################################################################################
         ### Your code starts here ######################################################
 
+        n_left = len(y_left)
+        n_right = len(y_right)
+        n = n_left + n_right
+        left_gini_score = self.calc_gini_score_node(y_left)
+        right_gini_score = self.calc_gini_score_node(y_right)
+
+        split_score = ((n_left / n) * left_gini_score) + ((n_right / n) * right_gini_score)
+
         ### Your code ends here ########################################################
         ################################################################################        
 

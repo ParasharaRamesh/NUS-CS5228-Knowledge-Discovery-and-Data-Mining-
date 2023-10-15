@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 
 
@@ -54,7 +55,7 @@ class DecisionStumpClassifier:
         N = len(y)
         unique_elements, counts = np.unique(y, return_counts=True)
         class_probs = counts / N
-        class_probs_squared = class_probs ** 2
+        class_probs_squared = np.square(class_probs)
         gini = 1 - np.sum(class_probs_squared)
 
         ### Your code ends here ########################################################
@@ -124,10 +125,13 @@ class DecisionStumpClassifier:
                 ################################################################################
                 ### Your code starts here ######################################################
                 # split it based on the threshold
-                left_split_indices = np.where(values < threshold)[0]
-                right_split_indices = np.where(values >= threshold)[0]
+                # left_split_indices = np.where(values <= threshold)
+                # right_split_indices = np.where(values > threshold)
 
-                #find corresponding y_left and y_right
+                left_split_indices = np.where(values < threshold)
+                right_split_indices = np.where(values >= threshold)
+
+                # find corresponding y_left and y_right
                 y_left = y[left_split_indices]
                 y_right = y[right_split_indices]
 
@@ -136,11 +140,11 @@ class DecisionStumpClassifier:
 
                 # save the best feature_idx, threshold, left and right
                 if gini_split < score:
-                    score = gini_split
                     self.y_left = y_left
                     self.y_right = y_right
                     self.threshold = threshold
                     self.feature_idx = feature_idx
+                    score = gini_split
 
                 ### Your code ends here ########################################################
                 ################################################################################
@@ -164,29 +168,26 @@ class DecisionStumpClassifier:
         ################################################################################
         ### Your code starts here ######################################################
 
-        #Split on the best feature_idx obtained thus far
+        # Split on the best feature_idx obtained thus far
         values = X[:, self.feature_idx]
 
         # split it based on the threshold
-        left_split_indices = np.where(values < self.threshold)[0]
-        right_split_indices = np.where(values >= self.threshold)[0]
+        # left_split_indices = np.where(values <= self.threshold)
+        # right_split_indices = np.where(values > self.threshold)
+
+        left_split_indices = np.where(values < self.threshold)
+        right_split_indices = np.where(values >= self.threshold)
 
         # Getting unique values and their counts
         unique_values_left, counts_left = np.unique(self.y_left, return_counts=True)
         unique_values_right, counts_right = np.unique(self.y_right, return_counts=True)
 
-        # Create a dictionary to store the counts for each unique value
-        count_dict_left = dict(zip(unique_values_left, counts_left))
-        count_dict_right = dict(zip(unique_values_right, counts_right))
+        max_class_left = unique_values_left[np.argmax(counts_left)]
+        max_class_right = unique_values_right[np.argmax(counts_right)]
 
-        #find the max class in each
-        max_class_left = max(count_dict_left, key=lambda key: count_dict_left[key])
-        max_class_right = max(count_dict_right, key=lambda key: count_dict_right[key])
-
-        #assign the classes
+        # assign the classes
         y_pred[left_split_indices] = max_class_left
         y_pred[right_split_indices] = max_class_right
-
 
         ### Your code ends here ########################################################
         ################################################################################            
@@ -222,7 +223,7 @@ class AdaBoostTreeClassifier:
         self.classes = np.unique(y)
 
         for m in range(self.n_estimators):
-            # Step 1: Train Weak Learner on current datset sample
+            # Step 1: Train Weak Learner on current dataset sample
             estimator = DecisionStumpClassifier().fit(D, d)
 
             # If you don't trust your implementation of DecisionStumpClassifier or just for testing,
@@ -239,20 +240,32 @@ class AdaBoostTreeClassifier:
             # misclassified, e, a, w below are all assumed to be numpy arrays
 
             # Step 2: Identify all samples in X that get misclassified with the current estimator
-            misclassified = None
+            predicted_d = estimator.predict(X)
+
+            # gives us a boolean array of the exact indices where they are not equal
+            misclassified = np.not_equal(y, predicted_d)
 
             # Step 3: Calculate the total error for current estimator
-            e = None
+            e = np.dot(w, misclassified)
 
             # Step 4: Calculate amount of say for current estimator and keep track of it
             # (we need the amounts of say later for the predictions)
-            a = None
+            a = 0.5 * np.log((1 - e) / e)
+            print(f"e: {e} | a: {a}")
+            print("-" * 50)
+            self.alphas.append(a)
 
             # Step 3: Update the sample weights w based on amount of say a
-            w = None
+            w[misclassified] *= np.exp(a)
+            w[~misclassified] *= np.exp(-a)
 
-            # Step 4: Sample next D and d
-            D, d = None, None
+            # normalize w
+            w = w / np.sum(w)
+
+            # Step 4: Sample next D and gd
+            sampled_indices = np.random.choice(N, N, p=w, replace=True)
+
+            D, d = X[sampled_indices], y[sampled_indices]
 
             ### Your code ends here ########################################################
             ################################################################################            
@@ -308,36 +321,15 @@ class AdaBoostTreeClassifier:
 
         ################################################################################
         ### Your code starts here ######################################################        
+        for i, params in enumerate(zip(self.alphas, self.estimators)):
+            alpha, estimator = params
+            predicted_class = estimator.predict(x).astype(int)
+            class_scores[predicted_class] += alpha
+
+        # find the one with the maximum say
+        y_pred = np.argmax(class_scores)
 
         ### Your code ends here ########################################################
         ################################################################################
 
         return y_pred
-
-
-if __name__ == '__main__':
-    import pandas as pd
-
-    # TODO.x have to figure things out here!
-    np.random.seed(0)
-    df_iris = pd.read_csv('data/a3-iris.csv')
-    # Convert the 3 string class labels to 0, 1, and 2
-    df_iris.species = df_iris.species.factorize()[0]
-    df_iris = df_iris.sample(frac=1).reset_index(drop=True)
-
-    X = df_iris[['sepal_length', 'sepal_width', 'petal_length', 'petal_width']].to_numpy()
-    y = df_iris['species'].to_numpy().squeeze()
-
-    training_size = int(0.8 * X.shape[0])
-
-    X_train, y_train = X[:training_size], y[:training_size]
-    X_test, y_test = X[training_size:], y[training_size:]
-
-    print(X_train.shape, X_test.shape)
-
-    stump = DecisionStumpClassifier().fit(X_train, y_train)
-
-    print("Index of best feature:", stump.feature_idx)
-    print("Best threshold:", stump.threshold)
-
-    print(stump.predict(X_test))

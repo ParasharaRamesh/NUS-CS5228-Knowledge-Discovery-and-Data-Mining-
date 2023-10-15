@@ -7,6 +7,7 @@ class DecisionStumpClassifier:
     def __init__(self):
         # Keeps the index of best feature and the value of the best threshold
         self.feature_idx, self.threshold = None, None
+
         # Keeps the indices of the data samples in the left and right child node
         self.y_left, self.y_right = None, None
 
@@ -15,7 +16,7 @@ class DecisionStumpClassifier:
         Calculates the set of all valid thresholds given a list of numerical values.
         The set of all valid thresholds is a set of minimum size that contains
         the values that would split the input list of values into two sublist:
-        (1) all values less or equal the the threshold
+        (1) all values less or equal the threshold
         (2) all values larger than the threshold
 
         Inputs:
@@ -118,10 +119,28 @@ class DecisionStumpClassifier:
 
             # Loop over all possible threshold; we are keeping it very simple here
             # all possible thresholds (see method above)
-            for threshold in self.calc_thresholds(values):
+            thresholds = self.calc_thresholds(values)
+            for threshold in thresholds:
                 ################################################################################
                 ### Your code starts here ######################################################
-                pass
+                # split it based on the threshold
+                left_split_indices = np.where(values < threshold)[0]
+                right_split_indices = np.where(values >= threshold)[0]
+
+                #find corresponding y_left and y_right
+                y_left = y[left_split_indices]
+                y_right = y[right_split_indices]
+
+                # find the information gain for the split
+                gini_split = self.calc_gini_score_split(y_left, y_right)
+
+                # save the best feature_idx, threshold, left and right
+                if gini_split < score:
+                    score = gini_split
+                    self.y_left = y_left
+                    self.y_right = y_right
+                    self.threshold = threshold
+                    self.feature_idx = feature_idx
 
                 ### Your code ends here ########################################################
                 ################################################################################
@@ -144,6 +163,30 @@ class DecisionStumpClassifier:
 
         ################################################################################
         ### Your code starts here ######################################################
+
+        #Split on the best feature_idx obtained thus far
+        values = X[:, self.feature_idx]
+
+        # split it based on the threshold
+        left_split_indices = np.where(values < self.threshold)[0]
+        right_split_indices = np.where(values >= self.threshold)[0]
+
+        # Getting unique values and their counts
+        unique_values_left, counts_left = np.unique(self.y_left, return_counts=True)
+        unique_values_right, counts_right = np.unique(self.y_right, return_counts=True)
+
+        # Create a dictionary to store the counts for each unique value
+        count_dict_left = dict(zip(unique_values_left, counts_left))
+        count_dict_right = dict(zip(unique_values_right, counts_right))
+
+        #find the max class in each
+        max_class_left = max(count_dict_left, key=lambda key: count_dict_left[key])
+        max_class_right = max(count_dict_right, key=lambda key: count_dict_right[key])
+
+        #assign the classes
+        y_pred[left_split_indices] = max_class_left
+        y_pred[right_split_indices] = max_class_right
+
 
         ### Your code ends here ########################################################
         ################################################################################            
@@ -296,3 +339,5 @@ if __name__ == '__main__':
 
     print("Index of best feature:", stump.feature_idx)
     print("Best threshold:", stump.threshold)
+
+    print(stump.predict(X_test))

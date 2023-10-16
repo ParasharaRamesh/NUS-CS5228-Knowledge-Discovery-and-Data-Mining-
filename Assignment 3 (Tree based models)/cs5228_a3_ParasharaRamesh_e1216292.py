@@ -113,9 +113,10 @@ class DecisionStumpClassifier:
         """
 
         # Initilize the score with infinity
-        score = np.inf
-        # score = -np.inf
-        print("sasgf")
+        # score = np.inf
+
+        #Initialize with negative infinity when finding information gain
+        score = -np.inf
 
         ## Loop through all features (columns of X) to find the best split
         for feature_idx in range(X.shape[1]):
@@ -137,14 +138,15 @@ class DecisionStumpClassifier:
                 y_left = y[left_split_indices]
                 y_right = y[right_split_indices]
 
-                # find the information gain for the split
-                gini_split = self.calc_gini_score_split(y_left, y_right)
-                # gini_split = self.calc_information_gain(y, y_left, y_right)
-                print(f"gs: {gini_split}")
+                #Finding only the gini score for the split
+                # gini_split = self.calc_gini_score_split(y_left, y_right)
 
-                # save the best feature_idx, threshold, left and right
-                if gini_split < score: # using only split
-                # if gini_split > score: # using only
+                # find the information gain for the split
+                gini_split = self.calc_information_gain(y, y_left, y_right)
+
+                # if gini_split < score: # using gini split score
+                if gini_split > score: # using information gain calculation
+                    # save the best feature_idx, threshold, left and right
                     self.y_left = y_left
                     self.y_right = y_right
                     self.threshold = threshold
@@ -253,8 +255,6 @@ class AdaBoostTreeClassifier:
             # Step 4: Calculate amount of say for current estimator and keep track of it
             # (we need the amounts of say later for the predictions)
             a = 0.5 * np.log((1 - e) / e)
-            # print(f"e: {e} | a: {a}")
-            # print("-" * 50)
             self.alphas.append(a)
 
             # Step 3: Update the sample weights w based on amount of say a

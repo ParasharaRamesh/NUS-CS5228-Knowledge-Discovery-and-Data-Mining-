@@ -28,7 +28,8 @@ class NMF:
             # iterate over non zero indices
             for u, v in self.Z:
                 # common term
-                diff = 2 * (self.M[u, v] - np.dot(self.W[u], self.H[:,v])) #taking dot product along the k dimension (e.g. 100 in this case)
+                diff = 2 * (self.M[u, v] - np.dot(self.W[u], self.H[:,
+                                                             v]))  # taking dot product along the k dimension (e.g. 100 in this case)
 
                 # calculate gradients
                 w_grad = learning_rate * ((diff * self.H[:, v]) - (2 * lambda_reg * self.W[u]))
@@ -79,7 +80,6 @@ def closeness(G):
         total_distances = sum(distance_to_reachable_nodes_from_this.values())
         closeness_scores[node] = N / total_distances
 
-
     ### Your code ends here #################################################################
     #########################################################################################         
 
@@ -119,30 +119,40 @@ def pagerank(G, alpha=0.85, eps=1e-06, max_iter=1000):
     #########################################################################################
     ### Your code starts here ############################################################### 
 
-    ## Initialize E and v
+    # Initialize E
+    E = np.ones(len(node_list))[:, np.newaxis] / len(node_list)
+
+    # Initialize c by considering out degree
+    c = np.array([G.out_degree(node, weight="weight") for node in node_list])[:, np.newaxis]
 
     ### Your code ends here #################################################################
     ######################################################################################### 
 
     # Run the power method: iterate until differences between steps converges
     num_iter = 0
-    while True:
+    while num_iter < max_iter:
         num_iter += 1
 
         #########################################################################################
         ### Your code starts here ###############################################################  
+        follow = alpha * np.matmul(M, c)
+        random_jump = (1 - alpha) * E
+        c_new = follow + random_jump
+
+        # check for convergence
+        has_c_converged = np.allclose(c, c_new, atol=eps)
+
+        # update it
+        c = c_new
+
+        if has_c_converged:
+            print("Reached convergence")
+            break
 
         ### Your code ends here #################################################################
         #########################################################################################            
-
-        pass
 
     c = c / np.sum(c)
 
     ## Return the results as a dictiory with the nodes as keys and the PageRank score as values
     return {node_list[k]: score for k, score in enumerate(c.squeeze())}
-
-# For local testing
-if __name__ == '__main__':
-    pass
-

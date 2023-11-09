@@ -66,7 +66,19 @@ def closeness(G):
     closeness_scores = {node: 0.0 for node in G.nodes}
 
     #########################################################################################
-    ### Your code starts here ############################################################### 
+    ### Your code starts here ###############################################################
+    for node in G.nodes:
+        # only includes the distances to the reachable nodes
+        distance_to_reachable_nodes_from_this = nx.shortest_path_length(G, source=node)
+
+        # remove the current node
+        distance_to_reachable_nodes_from_this.pop(node)
+
+        # calculate closeness
+        N = len(distance_to_reachable_nodes_from_this.keys())
+        total_distances = sum(distance_to_reachable_nodes_from_this.values())
+        closeness_scores[node] = N / total_distances
+
 
     ### Your code ends here #################################################################
     #########################################################################################         
@@ -132,14 +144,5 @@ def pagerank(G, alpha=0.85, eps=1e-06, max_iter=1000):
 
 # For local testing
 if __name__ == '__main__':
-    np.random.seed(0)
-    M = np.array([
-        [4, 0, 0, 5, 1, 0, 0],
-        [5, 5, 4, 0, 0, 0, 0],
-        [0, 0, 0, 2, 4, 5, 0],
-        [0, 3, 0, 0, 0, 0, 3]
-    ], dtype=np.float16)
+    pass
 
-
-    nmf = NMF(M)
-    nmf.fit(verbose=True)

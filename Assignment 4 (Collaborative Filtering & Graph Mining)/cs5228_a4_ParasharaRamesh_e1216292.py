@@ -1,7 +1,7 @@
 import numpy as np
 import networkx as nx
 from networkx.algorithms.shortest_paths import *
-
+from tqdm import tqdm
 
 ##########################################################################
 ##
@@ -22,7 +22,7 @@ class NMF:
         return loss
 
     def fit(self, learning_rate=0.0001, lambda_reg=0.1, num_iter=100, verbose=False):
-        for it in range(num_iter):
+        for it in tqdm(range(num_iter)):
             #########################################################################################
             ### Your code starts here ############################################################### 
             # iterate over non zero indices
